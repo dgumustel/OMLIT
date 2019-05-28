@@ -1,0 +1,60 @@
+# led lights test - By: joshu - Tue May 28 2019
+
+import sensor, image, time, pyb
+
+sensor.reset()
+sensor.set_pixformat(sensor.RGB565)
+sensor.set_framesize(sensor.QVGA)
+sensor.skip_frames(time = 2000)
+
+clock = time.clock()
+
+counter = 0
+timerLoop = 120
+red_led = pyb.LED(1)
+green_led = pyb.LED(2)
+blue_led = pyb.LED(3)
+
+
+while(True):
+    clock.tick()
+    img = sensor.snapshot()
+
+    counter += 1
+
+    if False: #alternates between 3
+        if (counter % timerLoop < (timerLoop / 3)):
+            red_led.on()
+            green_led.on()
+            blue_led.on()
+
+        elif ((counter % timerLoop > (timerLoop / 3))  and (counter % timerLoop < (timerLoop * 2 /3))):
+            red_led.on()
+            green_led.off()
+            blue_led.on()
+
+        else: #(counter % timerLoop >= (timerLoop * 2 / 3))
+            red_led.on()
+            green_led.off()
+            blue_led.off()
+
+
+
+    if (True): #alternates between all colors
+        if (counter % timerLoop < (timerLoop / 2)):
+            red_led.on()
+        else:
+            red_led.off()
+
+        if (counter % (timerLoop / 2) < (timerLoop / 4)):
+            blue_led.on()
+        else:
+            blue_led.off()
+
+        if (counter % (timerLoop /4) < (timerLoop / 8)):
+            green_led.on()
+        else:
+            green_led.off()
+
+    print(counter)
+
