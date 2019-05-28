@@ -7,8 +7,9 @@
 
 import sensor, image, pyb, time
 
-RED_LED_PIN = 1
-BLUE_LED_PIN = 3
+red_led = pyb.LED(1)
+green_led = pyb.LED(2)
+blue_led = pyb.LED(3)
 
 sensor.reset() # Initialize the camera sensor.
 sensor.set_pixformat(sensor.RGB565) # or sensor.GRAYSCALE
@@ -23,6 +24,11 @@ while(True):
     clock.tick()                    # Update the FPS clock.
     img = sensor.snapshot()         # Take a picture and return the image.
     
+    # turns lights on
+    red_led.on()
+    green_led.on()
+    blue_led.on()
+
     minSize = 50
     maxSize = 1000
     ## GENERATES A LIST OF BLOBS  
@@ -43,4 +49,9 @@ while(True):
         img.draw_edges(foundBlob.min_corners())
     print(img)                      #This should send the snapshot to the Raspberry pi it is connected to.
     sensor.snapshot().save("snapshot-%d.jpg" % pyb.rng())
+    
+    # turns lights off
+    red_led.off()
+    green_led.off()
+    blue_led.off()
     time.sleep(t)                   #this puts the camera to sleep for t seconds
