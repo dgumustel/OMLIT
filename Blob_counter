@@ -23,7 +23,7 @@ t=2000   #20 IS JUST AN IDEA, OKAY?
 while(True):
     clock.tick()                    # Update the FPS clock.
     img = sensor.snapshot()         # Take a picture and return the image.
-    
+
     # turns lights on
     red_led.on()
     green_led.on()
@@ -31,27 +31,28 @@ while(True):
 
     minSize = 50
     maxSize = 1000
-    ## GENERATES A LIST OF BLOBS  
+    ## GENERATES A LIST OF BLOBS
     #(blobs are connected pixel regions that pass a threshold test
-    
+
     # dark bits
-    #blobList = img.find_blobs([(0,60),(0,60),(0,60)], area_threshold = minSIze)  
+    #blobList = img.find_blobs([(0,60),(0,60),(0,60)], area_threshold = minSIze)
     # bright bits
-    blobList = img.find_blobs([(10,80),(10,80),(10,80)], area_threshold = minSize)
-    blobList = filter(lambda x: x.area() < maxSize, blobList)
-    print(len("total blobs =",blobList))
+    blobList = img.find_blobs([(10,80),(10,80),(10,80)], invert = True, area_threshold = minSize)
+    blobList = list(filter(lambda x: x.area() < maxSize, blobList))
+    print("total blobs =",len(blobList))
 
     ## DRAWING A SHAPE ONTO THE SCREEN MATCHING EACH BLOB ##
     for num,foundBlob in enumerate(blobList):
-        print(num,type(foundBlob), foundBlob.rect(), foundBlob.area())
+        #print(num,type(foundBlob), foundBlob.rect(), foundBlob.area())
+        
         #img.draw_rectangle(foundBlob.rect())
         #img.draw_ellipse(foundBlob.enclosed_ellipse())
-        img.draw_edges(foundBlob.min_corners())
-    print(img)                      #This should send the snapshot to the Raspberry pi it is connected to.
-    sensor.snapshot().save("snapshot-%d.jpg" % pyb.rng())
-    
+        img.draw_edges(foundBlob.min_corners(), color = 0)
+    #print(img)                      #This should send the snapshot to the Raspberry pi it is connected to.
+    #sensor.snapshot().save("snapshot-%d.jpg" % pyb.rng())
+
     # turns lights off
     red_led.off()
     green_led.off()
     blue_led.off()
-    time.sleep(t)                   #this puts the camera to sleep for t seconds
+    #time.sleep(t) #this puts the camera to sleep for t seconds
