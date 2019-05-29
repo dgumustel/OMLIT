@@ -17,6 +17,12 @@ sensor.set_framesize(sensor.QQVGA) # or sensor.QQVGA (or others)
 sensor.skip_frames(time = 2000) # Let new settings take affect.
 
 clock = time.clock()                # Create a clock object to track the FPS.
+
+red_led.on()
+green_led.on()
+blue_led.on()
+
+
 #define length of time
 t=2000   #20 IS JUST AN IDEA, OKAY?
 #This loop takes a pic, counts the blobs, sends this data to the Pi, and then goes to sleep for t seconds
@@ -25,11 +31,9 @@ while(True):
     img = sensor.snapshot()         # Take a picture and return the image.
 
     # turns lights on
-    red_led.on()
-    green_led.on()
-    blue_led.on()
 
-    minSize = 50
+    time.sleep(100)
+    minSize = 15
     maxSize = 1000
     ## GENERATES A LIST OF BLOBS
     #(blobs are connected pixel regions that pass a threshold test
@@ -48,11 +52,12 @@ while(True):
         #img.draw_rectangle(foundBlob.rect())
         #img.draw_ellipse(foundBlob.enclosed_ellipse())
         img.draw_edges(foundBlob.min_corners(), color = 0)
+    #print(blobList)
     #print(img)                      #This should send the snapshot to the Raspberry pi it is connected to.
     #sensor.snapshot().save("snapshot-%d.jpg" % pyb.rng())
 
     # turns lights off
-    red_led.off()
-    green_led.off()
-    blue_led.off()
+    #red_led.off()
+    #green_led.off()
+    #blue_led.off()
     #time.sleep(t) #this puts the camera to sleep for t seconds
