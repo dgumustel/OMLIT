@@ -1,4 +1,3 @@
-
 # Snapshot Example
 #
 # Note: You will need an SD card to run this example.
@@ -7,57 +6,72 @@
 
 import sensor, image, pyb, time
 
+sensor.reset()                      # Initialize the camera sensor.
+sensor.set_pixformat(sensor.RGB565) # or sensor.GRAYSCALE
+sensor.set_framesize(sensor.QQVGA)  # or sensor.QQVGA (or others)
+sensor.skip_frames(time = 2000)     # Let new settings take affect.
+
+# imports and turns on lights
 red_led = pyb.LED(1)
 green_led = pyb.LED(2)
 blue_led = pyb.LED(3)
-
-sensor.reset() # Initialize the camera sensor.
-sensor.set_pixformat(sensor.RGB565) # or sensor.GRAYSCALE
-sensor.set_framesize(sensor.QQVGA) # or sensor.QQVGA (or others)
-sensor.skip_frames(time = 2000) # Let new settings take affect.
-
-clock = time.clock()                # Create a clock object to track the FPS.
-
 red_led.on()
 green_led.on()
 blue_led.on()
 
+# Create a clock object to track the FPS.
+clock = time.clock()
 
-#define length of time
-t=2000   #20 IS JUST AN IDEA, OKAY?
-#This loop takes a pic, counts the blobs, sends this data to the Pi, and then goes to sleep for t seconds
+# length of time for sleep
+goesToSleep = False
+t=2000
+
+## BLOB COUNTING PARAMETERS ##
+blobColorRange = (10,80)    # threshhold range of blobs
+invertRange = True          # if above range is inverted
+minSize = 15                # min size of blob
+maxSize = 1000              # range above which blobs are filtered
+
+# saving info to files
+counter = 0
+countsPerPic = 2000
+sampleName = "6.1.19_test_"
+rtc = pyb.RTC()
+
+
+
+# This loop takes a pic, counts the blobs, sends this data to the Pi, and then goes to sleep for t seconds
 while(True):
     clock.tick()                    # Update the FPS clock.
     img = sensor.snapshot()         # Take a picture and return the image.
 
-    # turns lights on
-
-    time.sleep(100)
-    minSize = 15
-    maxSize = 1000
     ## GENERATES A LIST OF BLOBS
     #(blobs are connected pixel regions that pass a threshold test
-
-    # dark bits
-    #blobList = img.find_blobs([(0,60),(0,60),(0,60)], area_threshold = minSIze)
-    # bright bits
-    blobList = img.find_blobs([(10,80),(10,80),(10,80)], invert = True, area_threshold = minSize)
+    blobList = img.find_blobs([blobColorRange,blobColorRange,blobColorRange], invert = invertRange, area_threshold = minSize)
     blobList = list(filter(lambda x: x.area() < maxSize, blobList))
-    print("total blobs =",len(blobList))
 
     ## DRAWING A SHAPE ONTO THE SCREEN MATCHING EACH BLOB ##
     for num,foundBlob in enumerate(blobList):
-        #print(num,type(foundBlob), foundBlob.rect(), foundBlob.area())
-        
-        #img.draw_rectangle(foundBlob.rect())
-        #img.draw_ellipse(foundBlob.enclosed_ellipse())
+        # img.draw_rectangle(foundBlob.rect())
+        # img.draw_ellipse(foundBlob.enclosed_ellipse())
         img.draw_edges(foundBlob.min_corners(), color = 0)
-    #print(blobList)
-    #print(img)                      #This should send the snapshot to the Raspberry pi it is connected to.
-    #sensor.snapshot().save("snapshot-%d.jpg" % pyb.rng())
 
-    # turns lights off
-    #red_led.off()
-    #green_led.off()
-    #blue_led.off()
-    #time.sleep(t) #this puts the camera to sleep for t seconds
+    ## WRITES NUMBER OF BLOBS TO A FILE AND SOMETIMES SAVES IMAGES ##
+    counter += 1
+    # saves counter number, date, and number of blobs to a line
+    log = open(sampleName + "data.txt", "a")
+    log.write("counter:", counter, "  date:", RTC.datetime()) + "  number_of_blobs:", len(blobList), "\n")
+    print("counter:", counter, "  date:", RTC.datetime()) + "  number_of_blobs:", len(blobList))
+    log.close()
+    # saves image occasionally
+    if (counter % countsPerPic == 0):
+        # save snapshot to connected Raspberry pi with sampleName and counter number
+        sensor.snapshot().save(sampleName + str(counter) + "snapshot-%d.jpg" % pyb.rng())
+        print("~~~~~ SNAPSHOT SAVED ~~~~~")
+
+    ## TURNS OFF LIGHTS AND GOES TO SLEEP ##
+    if (goesToSleep):
+        red_led.off()
+        green_led.off()
+        blue_led.off()
+        time.sleep(t) #this puts the camera to sleep for t seconds
