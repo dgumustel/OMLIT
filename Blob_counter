@@ -1,7 +1,9 @@
-# Snapshot Example
-#
+# OMLIT: Optical Machine-Learning Instrumentation Technology
+# Counting blobs and saving data
+# this program turns on lights and detects regions of pixels in a threshold
+# saves the number of blobs to a text file and occasionally saves images
+
 # Note: You will need an SD card to run this example.
-#
 # You can use your OpenMV Cam to save image files.
 
 import sensor, image, pyb, time
@@ -9,9 +11,11 @@ import sensor, image, pyb, time
 sensor.reset()                      # Initialize the camera sensor.
 sensor.set_pixformat(sensor.RGB565) # or sensor.GRAYSCALE
 sensor.set_framesize(sensor.QQVGA)  # or sensor.QQVGA (or others)
-sensor.skip_frames(time = 2000)     # Let new settings take affect.
+sensor.skip_frames(time = 2000)     # lets new settings take affect.
 
 # imports and turns on lights
+# the combination of red, green and blue LED's create near-white light
+# note: pyb.LED(4) can turn on an IR light
 red_led = pyb.LED(1)
 green_led = pyb.LED(2)
 blue_led = pyb.LED(3)
@@ -19,59 +23,73 @@ red_led.on()
 green_led.on()
 blue_led.on()
 
-# Create a clock object to track the FPS.
-clock = time.clock()
-
-# length of time for sleep
-goesToSleep = False
-t=2000
-
-## BLOB COUNTING PARAMETERS ##
-blobColorRange = (10,80)    # threshhold range of blobs
+# BLOB COUNTING PARAMETERS
+blobColorRange = (10,80)    # threshhold range of blobs (can be from 0 to 255)
+blobColorRangeList = [blobColorRange,blobColorRange,blobColorRange]
 invertRange = True          # if above range is inverted
 minSize = 15                # min size of blob
 maxSize = 1000              # range above which blobs are filtered
 
 # saving info to files
-counter = 0
-countsPerPic = 2000
-sampleName = "6.1.19_test_"
-rtc = pyb.RTC()
+counter = 0                 # overall counter that increases per loop
+countsPerBlobText = 1
+countsPerImage = 100
+sampleName = "6.4.19_test" #sample code name, can be changed to anything
+
+# time for records + for sleep
+rtc = pyb.RTC() # Real Time Clock
+goesToSleep = True
+countsPerSleep = 200 # number of counts things are recorded for before sleeping
+sleepTime = 1000 # time that image goes to sleep for
+
 
 
 
 # This loop takes a pic, counts the blobs, sends this data to the Pi, and then goes to sleep for t seconds
 while(True):
-    clock.tick()                    # Update the FPS clock.
-    img = sensor.snapshot()         # Take a picture and return the image.
+    counter += 1
+    img = sensor.snapshot()         # Take a picture and return the image to be displayed.
 
-    ## GENERATES A LIST OF BLOBS
-    #(blobs are connected pixel regions that pass a threshold test
-    blobList = img.find_blobs([blobColorRange,blobColorRange,blobColorRange], invert = invertRange, area_threshold = minSize)
+    # GENERATES A LIST OF BLOBS + DRAWS THEM
+    # blobs are connected pixel regions that pass a threshold test
+    blobList = img.find_blobs(blobColorRangeList, invert = invertRange, area_threshold = minSize)
     blobList = list(filter(lambda x: x.area() < maxSize, blobList))
-
-    ## DRAWING A SHAPE ONTO THE SCREEN MATCHING EACH BLOB ##
+    # draw a shape on screen matching blobs
     for num,foundBlob in enumerate(blobList):
+        # some shapes that can be drawn around blobs easily
+        img.draw_edges(foundBlob.min_corners(), color = 0)
         # img.draw_rectangle(foundBlob.rect())
         # img.draw_ellipse(foundBlob.enclosed_ellipse())
-        img.draw_edges(foundBlob.min_corners(), color = 0)
 
-    ## WRITES NUMBER OF BLOBS TO A FILE AND SOMETIMES SAVES IMAGES ##
-    counter += 1
-    # saves counter number, date, and number of blobs to a line
-    log = open(sampleName + "data.txt", "a")
-    log.write("counter:", counter, "  date:", RTC.datetime()) + "  number_of_blobs:", len(blobList), "\n")
-    print("counter:", counter, "  date:", RTC.datetime()) + "  number_of_blobs:", len(blobList))
-    log.close()
-    # saves image occasionally
-    if (counter % countsPerPic == 0):
+    # SAVES TEXT TO FILE
+    # occasionally saves counter number, date, and number of blobs to a line
+    # can be every time if CountsPerBlobText == 1
+    if (counter % countsPerBlobText == 0):
+        textToWrite = "  counter:" + str(counter) +                 \
+                      "  date:" + str(rtc.datetime()) +             \
+                      "  number_of_blobs:" + str(len(blobList))
+
+        log = open(sampleName + "_data.txt", "a")                   # creates a file or appends to one if it exists
+        log.write(textToWrite)                                      # writes a line to a file
+        print(textToWrite)                                          # prints to console
+        log.close()
+
+    # OCCASIONALLY SAVES IMAGE
+    if (counter % countsPerImage == 0):
         # save snapshot to connected Raspberry pi with sampleName and counter number
-        sensor.snapshot().save(sampleName + str(counter) + "snapshot-%d.jpg" % pyb.rng())
-        print("~~~~~ SNAPSHOT SAVED ~~~~~")
+        nameOfImage = sampleName +"_count"+ str(counter) + "_snapshot.jpg"
+        sensor.snapshot().save(nameOfImage)                         # saves image
+        print()
+        print("SNAPSHOT SAVED: " + nameOfImage)                     # prints a notice to the console
+        print()
 
-    ## TURNS OFF LIGHTS AND GOES TO SLEEP ##
-    if (goesToSleep):
+    # TURNS OFF LIGHTS FOR SLEEP
+    if (counter % countsPerSleep == 0 and goesToSleep):
         red_led.off()
         green_led.off()
         blue_led.off()
-        time.sleep(t) #this puts the camera to sleep for t seconds
+        time.sleep(sleepTime)
+        red_led.on()
+        green_led.on()
+        blue_led.on()
+
